@@ -1,5 +1,5 @@
 // Offline support: serve cached files, refresh the cache in the background.
-const CACHE = 'minesweeper-v1';
+const CACHE = 'minesweeper-v2';
 const FILES = [
   './', 'index.html', 'style.css', 'game.js', 'app.js', 'manifest.webmanifest',
   'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png',

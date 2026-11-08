@@ -138,6 +138,13 @@ select, .mode {
   cursor: default;
 }
 .cell.pressed:not(.open) { filter: brightness(1.25); }
+.cell.hint:not(.open) {
+  filter: brightness(1.35);
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+.cell.hint.ready:not(.open) { box-shadow: 0 0 0 2px #22c55e inset; }
+.cell.hint-src { box-shadow: 0 0 0 2px var(--accent) inset; }
+.cell.hint-src.ready { box-shadow: 0 0 0 2px #22c55e inset; }
 .cell.exploded { background: #ef4444; }
 .cell.wrong { background: #fca5a5; }
 

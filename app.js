@@ -21,7 +21,10 @@
 
   let game;
   let cellEls = [];
+  const TOUCH_DEVICE = matchMedia('(hover: none)').matches;
   let flagMode = false;
+  let hintIdx = null; // open number whose neighbours are highlighted
+  let hintTimer = null;
   let timerId = null;
   let startTime = 0;
   let elapsed = 0;
@@ -95,10 +98,39 @@
       el.setAttribute('aria-label', x.open ? (x.mine ? 'mine' : String(x.adj || 'empty')) : x.flag ? 'flagged' : 'hidden');
     });
 
+    applyHints();
     minesEl.textContent = pad(game.minesLeft);
     faceEl.textContent = game.state === 'won' ? '😎' : game.state === 'lost' ? '😵' : '🙂';
     statusEl.textContent = game.state === 'won' ? `You won in ${elapsed}s!` : game.state === 'lost' ? 'Boom! Tap 😵 to try again.' : '';
     if (over) stopTimer();
+  }
+
+  // ---- neighbour highlight for numbers ----
+  function applyHints() {
+    for (const el of boardEl.querySelectorAll('.hint, .hint-src')) el.classList.remove('hint', 'hint-src', 'ready');
+    if (hintIdx === null || game.isOver) return;
+    const x = game.cells[hintIdx];
+    if (!x.open || !x.adj) return;
+    const around = game.neighbors(x.r, x.c).filter((n) => !n.open);
+    const ready = around.filter((n) => n.flag).length === x.adj;
+    const src = cellEls[hintIdx];
+    src.classList.add('hint-src');
+    if (ready) src.classList.add('ready');
+    for (const n of around) {
+      const el = cellEls[n.r * game.cols + n.c];
+      el.classList.add('hint');
+      if (ready) el.classList.add('ready');
+    }
+  }
+  function showHint(i) {
+    clearTimeout(hintTimer);
+    hintIdx = i;
+    applyHints();
+  }
+  function hideHint(delay = 0) {
+    clearTimeout(hintTimer);
+    const go = () => { hintIdx = null; applyHints(); };
+    if (delay) hintTimer = setTimeout(go, delay); else go();
   }
 
   function pad(n) {
@@ -177,6 +209,7 @@
     clearPress();
     const el = cellEls[i];
     el.classList.add('pressed');
+    if (game.cells[i].open && game.cells[i].adj) showHint(i); else hideHint();
     press = { i, x: e.clientX, y: e.clientY, long: false, el, touch: e.pointerType !== 'mouse' };
     if (press.touch) {
       press.timer = setTimeout(() => {
@@ -185,12 +218,13 @@
         // Long-press does the opposite of the current tap mode.
         act(press.i, !flagMode);
         press.el.classList.remove('pressed');
+        if (hintIdx !== null) hideHint(1200);
       }, LONG_PRESS_MS);
     }
   });
 
   boardEl.addEventListener('pointermove', (e) => {
-    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_TOLERANCE) clearPress();
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_TOLERANCE) { clearPress(); hideHint(); }
   });
 
   boardEl.addEventListener('pointerup', (e) => {
@@ -198,9 +232,11 @@
     const { i, long } = press;
     clearPress();
     if (!long && cellIndex(e.target) === i) act(i, flagMode);
+    // Keep the highlight briefly so it is visible once the finger lifts.
+    if (hintIdx !== null) hideHint(1200);
   });
 
-  boardEl.addEventListener('pointercancel', clearPress);
+  boardEl.addEventListener('pointercancel', () => { clearPress(); hideHint(); });
   boardEl.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') clearPress(); });
 
   // Right-click flags on desktop; always suppress the menu (and iOS/Android long-press menu).
@@ -213,12 +249,19 @@
   // ---- controls ----
   faceEl.addEventListener('click', newGame);
   diffEl.addEventListener('change', () => { storage.set('minesweeper.difficulty', diffEl.value); newGame(); });
-  modeEl.addEventListener('click', () => {
-    flagMode = !flagMode;
+  // Tap mode: touch devices default to tap = flag, long-press = dig.
+  function setMode(flag) {
+    flagMode = flag;
     modeEl.setAttribute('aria-pressed', String(flagMode));
     modeEl.querySelector('.mode-icon').textContent = flagMode ? '🚩' : '⛏️';
-    modeEl.querySelector('.mode-label').textContent = flagMode ? 'Flag' : 'Dig';
+    modeEl.querySelector('.mode-label').textContent = flagMode ? 'Tap: Flag' : 'Tap: Dig';
+  }
+  modeEl.addEventListener('click', () => {
+    setMode(!flagMode);
+    storage.set('minesweeper.flagMode', flagMode ? '1' : '0');
   });
+  const savedMode = storage.get('minesweeper.flagMode');
+  setMode(savedMode === null ? TOUCH_DEVICE : savedMode === '1');
   document.addEventListener('keydown', (e) => {
     if (e.key === 'F2' || (e.key === 'n' && !e.ctrlKey && !e.metaKey && e.target === document.body)) newGame();
   });
