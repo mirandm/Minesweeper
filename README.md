@@ -19,3 +19,12 @@ Open `index.html` in any browser (no build step), or host the folder on GitHub P
 ```
 node --test
 ```
+
+## Install on iPhone / Android
+The page is an installable web app (manifest, icons, offline service worker). It must be served over HTTPS, e.g. GitHub Pages:
+
+1. Repo **Settings → Pages** → Source: *Deploy from a branch* → `main` / `(root)` → Save.
+2. On the iPhone, open `https://<user>.github.io/Minesweeper/` in **Safari**.
+3. Tap **Share → Add to Home Screen**.
+
+It then launches full-screen with its own icon and works offline. After changing files, bump `CACHE` in `sw.js` so devices pick up the update.

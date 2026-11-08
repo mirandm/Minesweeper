@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.38" cy="0.36" r="0.5">
+      <stop offset="0" stop-color="#64748b"/>
+      <stop offset="1" stop-color="#0b1120"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- tile -->
+  <rect x="72" y="72" width="368" height="368" rx="56" fill="#cbd5e1"/>
+  <!-- mine spikes -->
+  <g stroke="#0b1120" stroke-width="30" stroke-linecap="round">
+    <line x1="256" y1="118" x2="256" y2="394"/>
+    <line x1="118" y1="256" x2="394" y2="256"/>
+    <line x1="158" y1="158" x2="354" y2="354"/>
+    <line x1="354" y1="158" x2="158" y2="354"/>
+  </g>
+  <!-- mine body -->
+  <circle cx="256" cy="256" r="96" fill="url(#shine)"/>
+  <circle cx="226" cy="224" r="22" fill="#f8fafc" opacity="0.85"/>
+  <!-- flag badge -->
+  <g transform="translate(318 300)">
+    <circle cx="60" cy="60" r="74" fill="#f97316" stroke="#0f172a" stroke-width="12"/>
+    <rect x="44" y="22" width="12" height="80" rx="6" fill="#0f172a"/>
+    <path d="M56 24 L102 44 L56 64 Z" fill="#ffffff" stroke="#0f172a" stroke-width="6" stroke-linejoin="round"/>
+    <rect x="28" y="96" width="48" height="12" rx="6" fill="#0f172a"/>
+  </g>
+</svg>
