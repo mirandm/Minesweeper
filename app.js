@@ -49,6 +49,7 @@
     buildBoard();
     render();
     showBest();
+    requestAnimationFrame(revealStartIfHidden);
   }
 
   function buildBoard() {
@@ -92,6 +93,8 @@
       } else if (game.state === 'lost' && x.mine) {
         txt = '💣';
         cls += ' open';
+      } else if (game.state === 'ready' && game.isStart(x.r, x.c)) {
+        cls += ' start';
       }
       if (el.className !== cls) el.className = cls;
       if (el.textContent !== String(txt)) el.textContent = txt;
@@ -101,7 +104,9 @@
     applyHints();
     minesEl.textContent = pad(game.minesLeft);
     faceEl.textContent = game.state === 'won' ? '😎' : game.state === 'lost' ? '😵' : '🙂';
-    statusEl.textContent = game.state === 'won' ? `You won in ${elapsed}s!` : game.state === 'lost' ? 'Boom! Tap 😵 to try again.' : '';
+    statusEl.textContent = game.state === 'won' ? `You won in ${elapsed}s!`
+      : game.state === 'lost' ? 'Boom! Tap 😵 to try again.'
+      : game.state === 'ready' && game.start ? 'Start on the glowing square. No guessing needed.' : '';
     if (over) stopTimer();
   }
 
@@ -159,6 +164,11 @@
     if (game.isOver) return;
     const x = game.cells[i];
     const before = game.state;
+    if (before === 'ready' && game.start) {
+      // No-guess board: the game starts on the marked cell, whatever the tap mode.
+      if (!game.isStart(x.r, x.c)) { nudgeStart(); return; }
+      flag = false;
+    }
     if (flag && !x.open) {
       game.toggleFlag(x.r, x.c);
       vibrate(15);
@@ -169,6 +179,27 @@
     if (game.state === 'lost') vibrate([60, 40, 120]);
     if (game.state === 'won') { stopTimer(); saveBest(); }
     render();
+  }
+
+  function startEl() {
+    return game.start ? cellEls[game.start.r * game.cols + game.start.c] : null;
+  }
+  function nudgeStart() {
+    const el = startEl();
+    if (!el) return;
+    el.classList.remove('nudge');
+    void el.offsetWidth; // restart the animation
+    el.classList.add('nudge');
+    revealStartIfHidden();
+    vibrate(30);
+  }
+  function revealStartIfHidden() {
+    const el = startEl();
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight || r.left < 0 || r.right > window.innerWidth) {
+      el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    }
   }
 
   function vibrate(p) {

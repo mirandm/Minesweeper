@@ -2,6 +2,8 @@
 (function (root) {
   'use strict';
 
+  const Solver = typeof module !== 'undefined' && module.exports ? require('./solver.js') : root.MinesweeperSolver;
+
   const DIFFICULTIES = {
     beginner: { rows: 9, cols: 9, mines: 10 },
     intermediate: { rows: 16, cols: 16, mines: 40 },
@@ -9,7 +11,9 @@
   };
 
   class Game {
-    constructor(rows, cols, mines, rng = Math.random) {
+    // opts.noGuess (default true): pre-generate a board that is solvable by logic
+    // from a marked start cell (this.start). Otherwise mines are placed on first click.
+    constructor(rows, cols, mines, rng = Math.random, opts = {}) {
       if (mines >= rows * cols) throw new Error('Too many mines');
       this.rows = rows;
       this.cols = cols;
@@ -24,6 +28,23 @@
           this.cells.push({ r, c, mine: false, adj: 0, open: false, flag: false, exploded: false });
         }
       }
+      this.start = null;
+      this.solvable = false;
+      if (opts.noGuess !== false && Solver) {
+        const g = Solver.generate(rows, cols, mines, rng);
+        this.cells.forEach((x, i) => { x.mine = !!g.mines[i]; });
+        this.computeAdjacency();
+        this.start = { r: Math.floor(g.start / cols), c: g.start % cols };
+        this.solvable = g.solvable;
+      }
+    }
+
+    computeAdjacency() {
+      for (const x of this.cells) x.adj = this.neighbors(x.r, x.c).filter((n) => n.mine).length;
+    }
+
+    isStart(r, c) {
+      return !!this.start && this.start.r === r && this.start.c === c;
     }
 
     cell(r, c) {
@@ -61,9 +82,7 @@
         [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
         candidates[i].mine = true;
       }
-      for (const x of this.cells) {
-        x.adj = this.neighbors(x.r, x.c).filter((n) => n.mine).length;
-      }
+      this.computeAdjacency();
     }
 
     // Open a cell. Opening an already-open number chords instead.
@@ -76,7 +95,11 @@
         return;
       }
       if (this.state === 'ready') {
-        this.placeMines(r, c);
+        if (this.start) {
+          if (!this.isStart(r, c)) return; // the game begins on the marked start cell
+        } else {
+          this.placeMines(r, c);
+        }
         this.state = 'playing';
       }
       this.openCells([target]);

@@ -5,7 +5,7 @@ const { Game, DIFFICULTIES } = require('./game.js');
 
 // Build a game with mines at fixed positions, skipping random placement.
 function rigged(rows, cols, minePositions) {
-  const g = new Game(rows, cols, minePositions.length);
+  const g = new Game(rows, cols, minePositions.length, Math.random, { noGuess: false });
   g.placeMines = function () {
     for (const [r, c] of minePositions) this.cell(r, c).mine = true;
     for (const x of this.cells) x.adj = this.neighbors(x.r, x.c).filter((n) => n.mine).length;
@@ -16,7 +16,7 @@ function rigged(rows, cols, minePositions) {
 test('first click is always safe and clears its neighbours', () => {
   for (let i = 0; i < 200; i++) {
     const { rows, cols, mines } = DIFFICULTIES.expert;
-    const g = new Game(rows, cols, mines);
+    const g = new Game(rows, cols, mines, Math.random, { noGuess: false });
     const r = i % rows;
     const c = (i * 7) % cols;
     g.reveal(r, c);
@@ -27,7 +27,7 @@ test('first click is always safe and clears its neighbours', () => {
 });
 
 test('first click is safe even on a nearly full board', () => {
-  const g = new Game(3, 3, 8);
+  const g = new Game(3, 3, 8, Math.random, { noGuess: false });
   g.reveal(1, 1);
   assert.strictEqual(g.state, 'won');
 });
@@ -84,4 +84,48 @@ test('no actions after game over', () => {
   g.reveal(2, 2);
   assert.strictEqual(g.cell(2, 2).flag, false);
   assert.strictEqual(g.cell(2, 2).open, false);
+});
+
+const { solve } = require('./solver.js');
+
+test('no-guess boards: start is marked, safe, and the board is solvable by logic', () => {
+  for (const { rows, cols, mines } of Object.values(DIFFICULTIES)) {
+    for (let i = 0; i < 20; i++) {
+      const g = new Game(rows, cols, mines);
+      assert.ok(g.start, 'start cell provided');
+      assert.ok(g.solvable, 'generator found a solvable board');
+      assert.strictEqual(g.cells.filter((x) => x.mine).length, mines);
+      const s = g.cell(g.start.r, g.start.c);
+      assert.strictEqual(s.mine, false);
+      assert.strictEqual(s.adj, 0, 'start opens an area');
+      const arr = Uint8Array.from(g.cells, (x) => (x.mine ? 1 : 0));
+      assert.ok(solve(rows, cols, arr, g.start.r * cols + g.start.c));
+    }
+  }
+});
+
+test('no-guess game only starts on the marked cell', () => {
+  const g = new Game(9, 9, 10);
+  const other = g.cells.find((x) => !g.isStart(x.r, x.c));
+  g.reveal(other.r, other.c);
+  assert.strictEqual(g.state, 'ready');
+  assert.strictEqual(g.opened, 0);
+  g.reveal(g.start.r, g.start.c);
+  assert.strictEqual(g.state === 'playing' || g.state === 'won', true);
+  assert.ok(g.opened > 1);
+});
+
+test('solver needs a guess on a classic 50/50 and reports unsolvable', () => {
+  // Two cells in the corner of a 2x3 strip, one mine between them: no information can separate them.
+  // Layout (rows x cols = 2 x 3):   . . M      start at (0,0)
+  //                                 . . .
+  // Cells (0,2) and (1,2) both border only (0,1)/(1,1) which see one mine each -> 50/50.
+  const mines = Uint8Array.from([0, 0, 1, 0, 0, 0]);
+  assert.strictEqual(solve(2, 3, mines, 0), false);
+});
+
+test('solver handles a simple logical board', () => {
+  // 1x4 strip, mine at the end: start at 0 opens 0,1 -> (2) shows 1 -> (3) must be the mine.
+  const mines = Uint8Array.from([0, 0, 0, 1]);
+  assert.strictEqual(solve(1, 4, mines, 0), true);
 });
