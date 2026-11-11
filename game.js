@@ -11,8 +11,8 @@
   };
 
   class Game {
-    // opts.noGuess (default true): pre-generate a board that is solvable by logic
-    // from a marked start cell (this.start). Otherwise mines are placed on first click.
+    // Mines are placed on the first click. With opts.noGuess (default true) the board
+    // is generated so it can be solved by logic from that click, wherever it is.
     constructor(rows, cols, mines, rng = Math.random, opts = {}) {
       if (mines >= rows * cols) throw new Error('Too many mines');
       this.rows = rows;
@@ -28,23 +28,12 @@
           this.cells.push({ r, c, mine: false, adj: 0, open: false, flag: false, exploded: false });
         }
       }
-      this.start = null;
+      this.noGuess = opts.noGuess !== false && !!Solver;
       this.solvable = false;
-      if (opts.noGuess !== false && Solver) {
-        const g = Solver.generate(rows, cols, mines, rng);
-        this.cells.forEach((x, i) => { x.mine = !!g.mines[i]; });
-        this.computeAdjacency();
-        this.start = { r: Math.floor(g.start / cols), c: g.start % cols };
-        this.solvable = g.solvable;
-      }
     }
 
     computeAdjacency() {
       for (const x of this.cells) x.adj = this.neighbors(x.r, x.c).filter((n) => n.mine).length;
-    }
-
-    isStart(r, c) {
-      return !!this.start && this.start.r === r && this.start.c === c;
     }
 
     cell(r, c) {
@@ -72,6 +61,13 @@
     // Place mines after the first click so the first click is always safe.
     // Prefer keeping the clicked cell's neighbours clear too, so it opens an area.
     placeMines(safeR, safeC) {
+      if (this.noGuess) {
+        const g = Solver.generate(this.rows, this.cols, this.mines, this.rng, { start: safeR * this.cols + safeC });
+        this.cells.forEach((x, i) => { x.mine = !!g.mines[i]; });
+        this.computeAdjacency();
+        this.solvable = g.solvable;
+        return;
+      }
       const first = this.cell(safeR, safeC);
       const zone = new Set([first, ...this.neighbors(safeR, safeC)]);
       let candidates = this.cells.filter((x) => !zone.has(x));
@@ -95,11 +91,7 @@
         return;
       }
       if (this.state === 'ready') {
-        if (this.start) {
-          if (!this.isStart(r, c)) return; // the game begins on the marked start cell
-        } else {
-          this.placeMines(r, c);
-        }
+        this.placeMines(r, c);
         this.state = 'playing';
       }
       this.openCells([target]);

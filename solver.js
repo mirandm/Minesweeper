@@ -220,7 +220,8 @@
     }
   }
 
-  // Generate a board that can be solved from a chosen start cell without guessing.
+  // Generate a board that can be solved from the start cell without guessing.
+  // opts.start fixes the start cell (the player's first click); otherwise it is random.
   // The start cell and its neighbours are mine-free, so the first click opens an area.
   function generate(rows, cols, mineTotal, rng = Math.random, opts = {}) {
     const maxMs = opts.maxMs ?? 4000;
@@ -231,7 +232,7 @@
     let last = null;
     while (true) {
       attempts++;
-      const start = Math.floor(rng() * n);
+      const start = opts.start ?? Math.floor(rng() * n);
       const zone = new Set([start, ...nb[start]]);
       let candidates = [];
       for (let i = 0; i < n; i++) if (!zone.has(i)) candidates.push(i);

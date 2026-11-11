@@ -88,31 +88,21 @@ test('no actions after game over', () => {
 
 const { solve } = require('./solver.js');
 
-test('no-guess boards: start is marked, safe, and the board is solvable by logic', () => {
+test('no-guess boards: solvable by logic from wherever the first click is', () => {
   for (const { rows, cols, mines } of Object.values(DIFFICULTIES)) {
+    const corners = [[0, 0], [0, cols - 1], [rows - 1, 0], [rows - 1, cols - 1]];
     for (let i = 0; i < 20; i++) {
+      const [r, c] = i < 4 ? corners[i] : [Math.floor(Math.random() * rows), Math.floor(Math.random() * cols)];
       const g = new Game(rows, cols, mines);
-      assert.ok(g.start, 'start cell provided');
+      g.reveal(r, c);
       assert.ok(g.solvable, 'generator found a solvable board');
       assert.strictEqual(g.cells.filter((x) => x.mine).length, mines);
-      const s = g.cell(g.start.r, g.start.c);
-      assert.strictEqual(s.mine, false);
-      assert.strictEqual(s.adj, 0, 'start opens an area');
+      assert.strictEqual(g.cell(r, c).adj, 0, 'first click opens an area');
+      assert.ok(g.opened > 1);
       const arr = Uint8Array.from(g.cells, (x) => (x.mine ? 1 : 0));
-      assert.ok(solve(rows, cols, arr, g.start.r * cols + g.start.c));
+      assert.ok(solve(rows, cols, arr, r * cols + c));
     }
   }
-});
-
-test('no-guess game only starts on the marked cell', () => {
-  const g = new Game(9, 9, 10);
-  const other = g.cells.find((x) => !g.isStart(x.r, x.c));
-  g.reveal(other.r, other.c);
-  assert.strictEqual(g.state, 'ready');
-  assert.strictEqual(g.opened, 0);
-  g.reveal(g.start.r, g.start.c);
-  assert.strictEqual(g.state === 'playing' || g.state === 'won', true);
-  assert.ok(g.opened > 1);
 });
 
 test('solver needs a guess on a classic 50/50 and reports unsolvable', () => {

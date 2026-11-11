@@ -8,7 +8,7 @@ Open `index.html` in any browser (no build step), or host the folder on GitHub P
 - **Desktop:** click to open, right-click to flag, click a number to open its neighbours when its flags are placed. `F2` or `N` starts a new game.
 - **Mobile:** tap to flag, long-press to open (with haptic feedback). Touch a number to highlight the squares it covers (green = enough flags, tap to open the rest). The 🚩/⛏️ button swaps tap and long-press; the choice is remembered.
 - Difficulties: Beginner 9×9/10, Intermediate 16×16/40, Expert 30×16/99 (shown tall on portrait phones).
-- **No guessing:** every board comes with a glowing start square and is checked by a built-in logic solver, so the whole game can be cleared by deduction alone, with no 50/50 guesses. Best times are saved per difficulty in the browser.
+- **No guessing:** start anywhere (the first tap always opens an area, whatever the tap mode). The board is then generated so a built-in logic solver can clear it from that square, so the whole game needs deduction only, never a 50/50 guess. Best times are saved per difficulty in the browser.
 
 ## Files
 - `game.js` – game logic, no DOM (unit-tested)
