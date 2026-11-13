@@ -23,6 +23,8 @@
   let cellEls = [];
   const TOUCH_DEVICE = matchMedia('(hover: none)').matches;
   let flagMode = false;
+  let tip = null; // current hint from the logic engine
+  let hintsUsed = 0;
   let hintIdx = null; // open number whose neighbours are highlighted
   let hintTimer = null;
   let timerId = null;
@@ -46,6 +48,8 @@
     elapsed = 0;
     const { rows, cols, mines } = boardSize(diffEl.value);
     game = new Game(rows, cols, mines);
+    tip = null;
+    hintsUsed = 0;
     buildBoard();
     render();
     showBest();
@@ -99,9 +103,11 @@
     });
 
     applyHints();
+    applyTip();
     minesEl.textContent = pad(game.minesLeft);
     faceEl.textContent = game.state === 'won' ? '😎' : game.state === 'lost' ? '😵' : '🙂';
-    statusEl.textContent = game.state === 'won' ? `You won in ${elapsed}s!`
+    const withHints = hintsUsed ? ` with ${hintsUsed} ${hintsUsed === 1 ? 'hint' : 'hints'}` : '';
+    statusEl.textContent = game.state === 'won' ? `You won in ${elapsed}s${withHints}!`
       : game.state === 'lost' ? 'Boom! Tap 😵 to try again.'
       : game.state === 'ready' && game.noGuess ? 'Start anywhere. No guessing needed.' : '';
     if (over) stopTimer();
@@ -162,6 +168,7 @@
     const x = game.cells[i];
     const before = game.state;
     if (before === 'ready') flag = false; // the first tap always opens, whatever the tap mode
+    tip = null; // any move retires the current hint
     if (flag && !x.open) {
       game.toggleFlag(x.r, x.c);
       vibrate(15);
@@ -174,6 +181,58 @@
     render();
   }
 
+  // ---- hints: next certain move, with the reasoning ----
+  const tipEl = $('tip');
+  const tipActionEl = $('tipAction');
+  const tipTextEl = $('tipText');
+
+  function showHint() {
+    if (game.isOver) return;
+    if (game.state === 'ready') {
+      tip = { safe: [], mines: [], numbers: [], action: 'Tap any square to start.',
+        text: 'The first tap is always safe and opens an area. From there, every move can be worked out by logic.' };
+    } else {
+      tip = window.MinesweeperSolver.hint(game.rows, game.cols, game.mines, {
+        open: game.cells.map((x) => (x.open ? 1 : 0)),
+        adj: game.cells.map((x) => (x.open ? x.adj : 0)),
+        flag: game.cells.map((x) => (x.flag ? 1 : 0)),
+      });
+      if (tip.rule !== 'none') hintsUsed++;
+    }
+    render();
+    const first = tip.safe[0] ?? tip.mines[0];
+    if (first !== undefined) {
+      const el = cellEls[first];
+      const r = el.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) {
+        el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+      }
+    }
+  }
+
+  function applyTip() {
+    for (const el of boardEl.querySelectorAll('.tip-safe, .tip-mine, .tip-num, .tip-shared')) {
+      el.classList.remove('tip-safe', 'tip-mine', 'tip-num', 'tip-num-b', 'tip-shared');
+    }
+    if (!tip || game.isOver) {
+      tipEl.hidden = true;
+      return;
+    }
+    for (const i of tip.safe) cellEls[i].classList.add('tip-safe');
+    for (const i of tip.mines) cellEls[i].classList.add('tip-mine');
+    for (const i of tip.shared || []) cellEls[i].classList.add('tip-shared');
+    for (const { cell, label } of tip.numbers) {
+      cellEls[cell].classList.add('tip-num');
+      if (label === 'B') cellEls[cell].classList.add('tip-num-b');
+    }
+    tipActionEl.textContent = tip.action || '';
+    tipTextEl.textContent = tip.text;
+    tipEl.hidden = false;
+  }
+
+  $('hint').addEventListener('click', showHint);
+  $('tipClose').addEventListener('click', () => { tip = null; render(); });
+
   function vibrate(p) {
     if (navigator.vibrate) try { navigator.vibrate(p); } catch { /* ignore */ }
   }
@@ -182,7 +241,7 @@
   function bestKey() { return 'minesweeper.best.' + diffEl.value; }
   function saveBest() {
     const prev = Number(storage.get(bestKey())) || Infinity;
-    if (elapsed < prev) storage.set(bestKey(), String(elapsed));
+    if (elapsed < prev && hintsUsed === 0) storage.set(bestKey(), String(elapsed));
     showBest();
   }
   function showBest() {

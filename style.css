@@ -40,7 +40,9 @@ html, body {
 }
 
 select, .mode {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
   min-height: 44px;
   font: inherit;
   font-size: 16px; /* prevents iOS zoom on focus */
@@ -156,6 +158,55 @@ select, .mode {
 .n6 { color: #0e7490; }
 .n7 { color: #111827; }
 .n8 { color: #6b7280; }
+
+.hint-btn { flex: 0 0 auto; padding: 0 14px; }
+@media (max-width: 480px) {
+  .hint-btn .hint-label { display: none; }
+  .toolbar { gap: 6px; }
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  background: var(--panel);
+  border-left: 4px solid #38bdf8;
+  border-radius: 10px;
+  padding: 10px 8px 10px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.tip[hidden] { display: none; }
+.tip-body { flex: 1; }
+.tip-body strong { display: block; margin-bottom: 2px; color: #fff; }
+.tip-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Hint highlights (after .open so they win over its box-shadow reset). */
+.cell.tip-num { box-shadow: 0 0 0 3px #38bdf8 inset; }
+.cell.tip-num-b { box-shadow: 0 0 0 3px #e879f9 inset; }
+.cell.tip-safe { box-shadow: 0 0 0 3px #22c55e inset; background: #166534; }
+.cell.tip-mine { box-shadow: 0 0 0 3px #ef4444 inset; background: #7f1d1d; }
+.cell.tip-shared { outline: 2px dashed #38bdf8; outline-offset: -4px; }
+.cell.tip-safe, .cell.tip-mine { animation: tip-pulse 1.2s ease-in-out infinite; }
+@keyframes tip-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell.tip-safe, .cell.tip-mine { animation: none; }
+}
 
 .status {
   min-height: 1.4em;

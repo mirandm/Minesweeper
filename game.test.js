@@ -119,3 +119,58 @@ test('solver handles a simple logical board', () => {
   const mines = Uint8Array.from([0, 0, 0, 1]);
   assert.strictEqual(solve(1, 4, mines, 0), true);
 });
+
+const { hint } = require('./solver.js');
+const viewOf = (g) => ({
+  open: g.cells.map((x) => (x.open ? 1 : 0)),
+  adj: g.cells.map((x) => (x.open ? x.adj : 0)),
+  flag: g.cells.map((x) => (x.flag ? 1 : 0)),
+});
+
+test('following hints alone always wins, and every hint is correct', () => {
+  for (const { rows, cols, mines } of Object.values(DIFFICULTIES)) {
+    for (let i = 0; i < 10; i++) {
+      const g = new Game(rows, cols, mines);
+      g.reveal(Math.floor(Math.random() * rows), Math.floor(Math.random() * cols));
+      let steps = 0;
+      while (g.state === 'playing') {
+        const h = hint(rows, cols, mines, viewOf(g));
+        assert.notStrictEqual(h.rule, 'none', 'a hint is always available');
+        assert.ok(h.text.length > 20 && h.action.length > 3);
+        for (const c of h.safe) assert.strictEqual(g.cells[c].mine, false, 'hinted safe square is safe');
+        for (const c of h.mines) assert.strictEqual(g.cells[c].mine, true, 'hinted mine is a mine');
+        for (const c of h.mines) g.toggleFlag(g.cells[c].r, g.cells[c].c);
+        for (const c of h.safe) g.reveal(g.cells[c].r, g.cells[c].c);
+        assert.ok(++steps < 2000);
+      }
+      assert.strictEqual(g.state, 'won');
+    }
+  }
+});
+
+test('hint explains the 1-2-1 pattern with an overlapping pair', () => {
+  // 2x3: top row hidden, bottom row shows 1 2 1; mines in both top corners.
+  const h = hint(2, 3, 2, { open: [0, 0, 0, 1, 1, 1], adj: [0, 0, 0, 1, 2, 1], flag: [0, 0, 0, 0, 0, 0] });
+  assert.strictEqual(h.rule, 'pair');
+  assert.deepStrictEqual(h.numbers.map((x) => x.label), ['A', 'B']);
+  assert.strictEqual(h.mines.length, 1);
+  assert.match(h.text, /blue 2.*pink 1/);
+});
+
+test('hint catches a flag placed on a safe square, with the reason', () => {
+  // 1-2-1 pattern; the player wrongly flagged the safe middle-top square (cell 1).
+  const v = { open: [0, 0, 0, 1, 1, 1], adj: [0, 0, 0, 1, 2, 1], flag: [0, 1, 0, 0, 0, 0] };
+  let h = hint(2, 3, 2, v);
+  assert.ok(!h.mines.includes(1), 'never trusts the wrong flag');
+  v.flag[2] = 1; // player flags the proven mine at top-right
+  h = hint(2, 3, 2, v);
+  assert.deepStrictEqual(h.safe, [1]);
+  assert.deepStrictEqual(h.wrongFlags, [1]);
+  assert.match(h.text, /^Your flag on a green square is wrong\./);
+});
+
+test('no hint when only a guess is left', () => {
+  // 2x3 with one mine top-right; bottom-left area open; (0,2)/(1,2) is a 50/50.
+  const h = hint(2, 3, 1, { open: [1, 1, 0, 1, 1, 0], adj: [0, 1, 0, 0, 1, 0], flag: [0, 0, 0, 0, 0, 0] });
+  assert.strictEqual(h.rule, 'none');
+});

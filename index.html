@@ -25,6 +25,9 @@
       <button id="mode" class="mode" type="button" aria-pressed="false" title="Tap mode: open or flag">
         <span class="mode-icon" aria-hidden="true">⛏️</span><span class="mode-label">Dig</span>
       </button>
+      <button id="hint" class="mode hint-btn" type="button" title="Show the next logical move and why">
+        <span aria-hidden="true">💡</span><span class="hint-label">Hint</span>
+      </button>
     </header>
 
     <section class="panel">
@@ -32,6 +35,14 @@
       <button id="face" class="face" type="button" aria-label="New game">🙂</button>
       <div class="counter" id="timer" aria-label="Time">000</div>
     </section>
+
+    <div class="tip" id="tip" role="status" hidden>
+      <div class="tip-body">
+        <strong id="tipAction"></strong>
+        <span id="tipText"></span>
+      </div>
+      <button id="tipClose" class="tip-close" type="button" aria-label="Close hint">✕</button>
+    </div>
 
     <div class="board-wrap" id="boardWrap">
       <div class="board" id="board" role="grid" aria-label="Minefield"></div>
@@ -42,6 +53,7 @@
     <footer class="help">
       <p><strong>Desktop:</strong> click to open · right-click to flag · click a number to open its neighbours</p>
       <p><strong>Mobile:</strong> tap to flag · long-press to open · touch a number to see its squares, tap it to open them when flagged · switch with the 🚩/⛏️ button</p>
+      <p><strong>💡 Hint:</strong> shows the next certain move and explains why. Games won with hints don't count for best times.</p>
       <p id="best" class="best"></p>
     </footer>
   </main>
