@@ -174,3 +174,10 @@ test('no hint when only a guess is left', () => {
   const h = hint(2, 3, 1, { open: [1, 1, 0, 1, 1, 0], adj: [0, 1, 0, 0, 1, 0], flag: [0, 0, 0, 0, 0, 0] });
   assert.strictEqual(h.rule, 'none');
 });
+
+test('app.js has no duplicate function names (a later one silently replaces the earlier)', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, 'app.js'), 'utf8');
+  const names = [...src.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map((m) => m[1]);
+  const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+  assert.deepStrictEqual(dupes, []);
+});

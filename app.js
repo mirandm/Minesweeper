@@ -130,12 +130,12 @@
       if (ready) el.classList.add('ready');
     }
   }
-  function showHint(i) {
+  function highlightNeighbours(i) {
     clearTimeout(hintTimer);
     hintIdx = i;
     applyHints();
   }
-  function hideHint(delay = 0) {
+  function clearNeighbours(delay = 0) {
     clearTimeout(hintTimer);
     const go = () => { hintIdx = null; applyHints(); };
     if (delay) hintTimer = setTimeout(go, delay); else go();
@@ -186,7 +186,7 @@
   const tipActionEl = $('tipAction');
   const tipTextEl = $('tipText');
 
-  function showHint() {
+  function showTip() {
     if (game.isOver) return;
     if (game.state === 'ready') {
       tip = { safe: [], mines: [], numbers: [], action: 'Tap any square to start.',
@@ -230,7 +230,7 @@
     tipEl.hidden = false;
   }
 
-  $('hint').addEventListener('click', showHint);
+  $('hint').addEventListener('click', showTip);
   $('tipClose').addEventListener('click', () => { tip = null; render(); });
 
   function vibrate(p) {
@@ -271,7 +271,7 @@
     clearPress();
     const el = cellEls[i];
     el.classList.add('pressed');
-    if (game.cells[i].open && game.cells[i].adj) showHint(i); else hideHint();
+    if (game.cells[i].open && game.cells[i].adj) highlightNeighbours(i); else clearNeighbours();
     press = { i, x: e.clientX, y: e.clientY, long: false, el, touch: e.pointerType !== 'mouse' };
     if (press.touch) {
       press.timer = setTimeout(() => {
@@ -280,13 +280,13 @@
         // Long-press does the opposite of the current tap mode.
         act(press.i, !flagMode);
         press.el.classList.remove('pressed');
-        if (hintIdx !== null) hideHint(1200);
+        if (hintIdx !== null) clearNeighbours(1200);
       }, LONG_PRESS_MS);
     }
   });
 
   boardEl.addEventListener('pointermove', (e) => {
-    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_TOLERANCE) { clearPress(); hideHint(); }
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_TOLERANCE) { clearPress(); clearNeighbours(); }
   });
 
   boardEl.addEventListener('pointerup', (e) => {
@@ -295,10 +295,10 @@
     clearPress();
     if (!long && cellIndex(e.target) === i) act(i, flagMode);
     // Keep the highlight briefly so it is visible once the finger lifts.
-    if (hintIdx !== null) hideHint(1200);
+    if (hintIdx !== null) clearNeighbours(1200);
   });
 
-  boardEl.addEventListener('pointercancel', () => { clearPress(); hideHint(); });
+  boardEl.addEventListener('pointercancel', () => { clearPress(); clearNeighbours(); });
   boardEl.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') clearPress(); });
 
   // Right-click flags on desktop; always suppress the menu (and iOS/Android long-press menu).
